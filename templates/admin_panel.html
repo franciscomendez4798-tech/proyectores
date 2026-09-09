@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin FIT-UAT</title>
+
+    <link rel="icon"      type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=2">
+    <link rel="shortcut icon"              href="{{ url_for('static', filename='favicon.png') }}?v=2">
+
+    <!-- FIX: CSRF token en meta tag — necesario para los fetch/form dinámicos de JS -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #eef2f7; }
+        .navbar {
+            background-color: #1a1a1a; color: white; padding: 15px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 4px solid #cc0000;
+        }
+        .clock { font-family: monospace; font-size: 1.1em; font-weight: bold; }
+        .container { padding: 30px; max-width: 1400px; margin: 0 auto; }
+        .toolbar {
+            background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-wrap: wrap;
+        }
+        .btn-add   { background-color: #cc0000; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-add:hover   { background-color: #990000; }
+        .btn-black { background-color: #1a1a1a; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-black:hover { background-color: #333; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        th { background-color: #cc0000; color: white; padding: 15px; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #eee; color: #1a1a1a; vertical-align: middle; }
+
+        .btn-nav { padding: 8px 15px; border-radius: 4px; text-decoration: none; margin-left: 15px; font-size: 0.9em; border: none; cursor: pointer; color: white; font-weight: bold; }
+        .btn-historial       { background: #333; border: 1px solid #555; }
+        .btn-historial:hover { background: #000; }
+        .btn-notif { background: #cc0000; animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0%   { transform: scale(1);    box-shadow: 0 0 0  0px rgba(204,0,0,0.7); }
+            70%  { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(204,0,0,0);   }
+            100% { transform: scale(1);    box-shadow: 0 0 0  0px rgba(204,0,0,0);   }
+        }
+
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+        .bg-green  { background-color: #e6f2e6; color: #155724; border: 1px solid #28a745; }
+        .bg-orange { background-color: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .bg-blue   { background-color: #e6f0ff; color: #004085; border: 1px solid #007bff; }
+        .bg-red    { background-color: #f8d7da; color: #721c24; border: 1px solid #dc3545; }
+
+        .btn-action { padding: 6px 12px; border-radius: 4px; text-decoration: none; color: white; font-size: 0.85em; margin-right: 5px; display: inline-block; margin-bottom: 2px; border: none; cursor: pointer; font-family: inherit; }
+        .btn-entregar { background-color: #1a1a1a; }
+        .btn-entregar:hover { background-color: #333; }
+        .btn-recibir  { background-color: #cc0000; }
+        .btn-recibir:hover  { background-color: #990000; }
+        .btn-cancelar { background-color: #6c757d; }
+        .btn-cancelar:hover { background-color: #545b62; }
+
+        .modal-bg  { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; }
+        .modal-box { background:white; padding:30px; border-radius:8px; width:90%; max-width:400px; text-align:center; position:relative; border-top:5px solid #cc0000; box-shadow:0 5px 15px rgba(0,0,0,0.3); }
+        .modal-box h3     { margin-top:0; color:#1a1a1a; }
+        .modal-box label  { text-align:left; display:block; font-weight:bold; color:#555; margin-top:15px; }
+        .modal-box input  { width:100%; padding:12px; margin:8px 0 20px 0; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; text-transform:uppercase; font-size:1em; }
+        .btn-save         { background-color:#cc0000; color:white; border:none; padding:12px 20px; border-radius:5px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; }
+        .btn-save:hover   { background-color:#990000; }
+        .btn-close-modal  { position:absolute; top:10px; right:15px; cursor:pointer; font-size:1.5em; color:#888; border:none; background:none; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div style="display:flex; align-items:center;">
+        <h2 style="margin:0;">
+            <i class="fa-solid fa-shield-halved" style="color:#cc0000; margin-right:8px;"></i> Panel Admin FIT-UAT
+        </h2>
+        <div style="display:flex; gap:15px; align-items:center; margin-left:30px;">
+            <!-- FIX: url_for en lugar de ruta hardcodeada -->
+            <a href="{{ url_for('admin_historial') }}" class="btn-nav btn-historial" style="margin-left:0;">
+                <i class="fa-solid fa-book-open" style="margin-right:5px;"></i> Ver Historial
+            </a>
+            <button class="btn-nav btn-historial" onclick="verEstadisticas()" style="margin-left:0;">
+                <i class="fa-solid fa-chart-pie" style="margin-right:5px; color:#17a2b8;"></i> Estadísticas
+            </button>
+        </div>
+        <button id="btn-notif" class="btn-nav btn-notif" onclick="solicitarPermiso()">
+            <i class="fa-solid fa-bell" style="margin-right:5px;"></i> Activar Notificaciones
+        </button>
+    </div>
+    <div style="display:flex; align-items:center; gap:20px;">
+        <div class="clock" id="reloj">--:--:--</div>
+        <!-- FIX: url_for en lugar de /logout hardcodeado -->
+        <a href="{{ url_for('logout') }}" style="color:white; text-decoration:none; border:1px solid white; padding:5px 10px; border-radius:4px;">
+            <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i> Salir
+        </a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="toolbar">
+        <!-- FIX: CSRF token en todos los formularios estáticos -->
+        <form action="{{ url_for('agregar_proyector') }}" method="POST" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-add">
+                <i class="fa-solid fa-video" style="margin-right:5px;"></i> Nuevo Proyector
+            </button>
+        </form>
+
+        <button class="btn-black" onclick="document.getElementById('modalAlumno').style.display='flex'">
+            <i class="fa-solid fa-user-plus" style="margin-right:5px;"></i> Agregar Matrícula
+        </button>
+        <button class="btn-black" onclick="document.getElementById('modalBloqueo').style.display='flex'">
+            <i class="fa-solid fa-user-slash" style="margin-right:5px; color:#ff4d4d;"></i> Bloquear Usuario
+        </button>
+
+        <!-- FIX: CSRF token en formulario de config -->
+        <form action="{{ url_for('admin_config') }}" method="POST" style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label style="font-weight:bold; color:#555;">
+                <i class="fa-solid fa-stopwatch" style="margin-right:5px;"></i> Tiempo Espera (min):
+            </label>
+            <input type="number" name="tiempo_espera" value="{{ config.TIEMPO_ESPERA_MINUTOS }}"
+                   min="1" max="120" style="width:50px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+            <button type="submit" class="btn-black" style="padding:6px 12px;">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+            </button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Estado</th>
+                <th>Detalles Equipo</th>
+                <th>Usuario / Ubicación</th>
+                <th>Tiempos</th>
+                <th>Acciones</th>
+                <th>Gestión</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-body">
+            <tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Cargando equipos...
+            </td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- MODAL REGISTRO DE ALUMNO -->
+<div id="modalAlumno" class="modal-bg">
+    <div class="modal-box">
+        <button class="btn-close-modal" onclick="document.getElementById('modalAlumno').style.display='none'">&times;</button>
+        <h3><i class="fa-solid fa-file-signature" style="color:#cc0000; margin-right:8px;"></i> Registro de Alumno</h3>
+        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+        <!-- FIX: CSRF token -->
+        <form action="{{ url_for('agregar_alumno') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Matrícula Universitaria:</label>
+            <input type="text" name="matricula" placeholder="Ej. A2223330256" required autocomplete="off" maxlength="20">
+            <label>Nombre Completo:</label>
+            <input type="text" name="nombre" placeholder="Ej. JUAN PEREZ MARTINEZ" required autocomplete="off" maxlength="150">
+            <button type="submit" class="btn-save">
+                <i class="fa-solid fa-cloud-arrow-up" style="margin-right:5px;"></i> Guardar en Base de Datos
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL BLOQUEO DE USUARIO -->
+<div id="modalBloqueo" class="modal-bg">
+    <div class="modal-box" style="border-top:5px solid #dc3545;">
+        <button class="btn-close-modal" onclick="document.getElementById('modalBloqueo').style.display='none'">&times;</button>
+        <h3><i class="fa-solid fa-user-lock" style="color:#dc3545; margin-right:8px;"></i> Bloqueo de Acceso</h3>
+        <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+        <p style="color:#666; font-size:0.9em; margin-bottom:15px; text-align:left;">
+            Ingrese la matrícula del alumno para suspender su cuenta en plataforma.
+        </p>
+        <!-- FIX: CSRF token -->
+        <form action="{{ url_for('pre_bloqueo') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Matrícula Universitaria:</label>
+            <input type="text" name="matricula" placeholder="Ej. A123456789" required autocomplete="off" maxlength="20">
+            <button type="submit" class="btn-save" style="background-color:#dc3545;">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right:5px;"></i> Buscar y Verificar
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // FIX: CSRF token desde meta tag para todos los formularios dinámicos
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    /**
+     * FIX (Stored XSS): Escapar SIEMPRE datos del servidor antes de insertar en innerHTML.
+     * Los datos de p.usuario, p.telefono, p.marca, etc. pueden contener HTML si no se validaron
+     * correctamente al guardar. textContent neutraliza cualquier carácter especial.
+     */
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = (str === null || str === undefined) ? '' : String(str);
+        return d.innerHTML;
+    }
+
+    /**
+     * FIX: Helper para ejecutar acciones POST con CSRF desde JS.
+     * Reemplaza todos los <a href="/admin/accion/id"> que ejecutaban acciones con GET.
+     * Las acciones que modifican estado (entregar, cancelar, eliminar, mantenimiento)
+     * NUNCA deben ejecutarse con un simple GET — son vulnerables a CSRF y pre-fetching.
+     */
+    function accionPost(url, confirmar) {
+        if (confirmar && !confirm(confirmar)) return;
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = url;
+        const c = document.createElement('input');
+        c.type = 'hidden'; c.name = 'csrf_token'; c.value = csrfToken;
+        f.appendChild(c);
+        document.body.appendChild(f);
+        f.submit();
+    }
+
+    // ─── ALERTAS INTELIGENTES ─────────────────────────────────────────────────
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const alerta = urlParams.get('alerta');
+    if (alerta === 'exito') {
+        Swal.fire('¡Registrado!', 'El alumno ha sido agregado a la base de datos correctamente.', 'success')
+            .then(() => window.history.replaceState(null, '', window.location.pathname));
+    } else if (alerta === 'duplicado') {
+        Swal.fire({ title: 'Matrícula Existente', text: 'El alumno con esta matrícula ya está en la base de datos.', icon: 'warning', confirmButtonColor: '#1a1a1a' })
+            .then(() => window.history.replaceState(null, '', window.location.pathname));
+    }
+
+    // ─── NOTIFICACIONES ───────────────────────────────────────────────────────
+
+    let totalReservadosAnterior = -1;
+    let originalTitle = document.title;
+    let blinkInterval = null;
+
+    window.onload = function() {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            document.getElementById('btn-notif').style.display = 'none';
+        }
+    };
+
+    function solicitarPermiso() {
+        if (!('Notification' in window)) {
+            Swal.fire('Error', 'Tu navegador no soporta notificaciones de escritorio.', 'error');
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                document.getElementById('btn-notif').style.display = 'none';
+                Swal.fire('¡Excelente!', 'Notificaciones activadas.', 'success');
+            } else {
+                Swal.fire('Permiso Denegado', 'Permite las notificaciones en la barra de tu navegador.', 'warning');
+            }
+        });
+    }
+
+    function lanzarAlerta() {
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 5000 });
+        Toast.fire({ icon: 'warning', title: '¡Nueva Solicitud!', text: 'Revisa el panel para entregar el equipo.' });
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('📽️ ¡Nuevo Préstamo de Proyector!', { body: 'Un alumno acaba de apartar un equipo.', requireInteraction: true });
+        }
+        if (!blinkInterval) {
+            let toggle = false;
+            blinkInterval = setInterval(() => {
+                document.title = toggle ? originalTitle : '🔴 ¡NUEVO PRÉSTAMO!';
+                toggle = !toggle;
+            }, 1000);
+        }
+    }
+
+    window.onfocus = function() {
+        if (blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; document.title = originalTitle; }
+    };
+
+    // ─── TABLA PRINCIPAL ──────────────────────────────────────────────────────
+
+    function renderTabla(data) {
+        const tbody = document.getElementById('tabla-body');
+        let html = '';
+        let totalReservadosActual = 0;
+
+        data.forEach(p => {
+            if (p.estado === 'Reservado') totalReservadosActual++;
+
+            // FIX (Stored XSS): esc() en todos los campos del servidor
+            let badge = '';
+            if      (p.estado === 'Disponible') badge = '<span class="badge bg-green">Disp</span>';
+            else if (p.estado === 'Reservado')  badge = '<span class="badge bg-orange">Espera</span>';
+            else if (p.estado === 'En Uso')     badge = '<span class="badge bg-blue">En Uso</span>';
+            else                                badge = '<span class="badge bg-red">MTO</span>';
+
+            const detalles = `<strong>${esc(p.marca)}</strong> <small>${esc(p.modelo)}</small><br><span style="font-size:0.8em;color:#888;">SN: ${esc(p.serie)}</span>`;
+
+            let uso = '-';
+            if (p.usuario) {
+                if (String(p.usuario).includes('DOCENTE')) {
+                    uso = `<i class="fa-solid fa-chalkboard-user" style="color:#cc0000;margin-right:5px;"></i> <strong>${esc(p.usuario)}</strong>`;
+                } else {
+                    uso = `<i class="fa-solid fa-user" style="color:#1a1a1a;margin-right:5px;"></i> <strong>${esc(p.usuario)}</strong><br>
+                           <i class="fa-solid fa-phone" style="color:#888;font-size:0.9em;margin-right:5px;"></i>
+                           <a href="tel:${esc(p.telefono)}" style="color:#007bff;text-decoration:none;">${esc(p.telefono)}</a><br>
+                           <i class="fa-solid fa-location-dot" style="color:#dc3545;font-size:0.9em;margin-right:5px;"></i>
+                           ${esc(p.salon)} <small>(${esc(p.maestro)})</small>`;
+                }
+            }
+
+            let tiempo = '-';
+            let acciones = '';
+
+            if (p.estado === 'Reservado') {
+                // FIX: hora_reserva ahora es "YYYY-MM-DD HH:MM" — extraer solo HH:MM
+                const horaReserva = p.hora_reserva
+                    ? esc(p.hora_reserva.split(' ')[1])
+                    : '-';
+                tiempo = `Llegada: ${horaReserva}`;
+
+                // FIX: Botones POST en lugar de enlaces GET
+                acciones = `
+                    <button onclick="accionPost('/admin/entregar/${esc(p.id)}')" class="btn-action btn-entregar">
+                        <i class="fa-solid fa-check" style="margin-right:5px;"></i> Entregar
+                    </button>
+                    <button onclick="accionPost('/admin/cancelar/${esc(p.id)}')" class="btn-action btn-cancelar">
+                        <i class="fa-solid fa-xmark" style="margin-right:5px;"></i> Cancelar
+                    </button>`;
+
+            } else if (p.estado === 'En Uso') {
+                let pin_alerta = '';
+                if (p.hora_limite) {
+                    const ahora  = new Date();
+                    const limite = new Date();
+                    const partes = p.hora_limite.split(':');
+                    limite.setHours(parseInt(partes[0]), parseInt(partes[1]), 0);
+                    const diffMin = (limite - ahora) / 60000;
+                    if      (diffMin <= 0)  pin_alerta = '<br><span style="color:#cc0000;font-weight:bold;font-size:0.9em;"><i class="fa-solid fa-circle-exclamation"></i> ¡ATRASADO!</span>';
+                    else if (diffMin <= 15) pin_alerta = '<br><span style="color:#ff9900;font-weight:bold;font-size:0.9em;"><i class="fa-solid fa-hourglass-half"></i> Por vencer</span>';
+                }
+                tiempo = `Límite: <strong>${esc(p.hora_limite)}</strong>${pin_alerta}`;
+
+                acciones = `
+                    <a href="/admin/checklist/${esc(p.id)}" class="btn-action btn-recibir">
+                        <i class="fa-solid fa-inbox" style="margin-right:5px;"></i> Recibir
+                    </a>
+                    <button class="btn-action" style="background-color:#0056b3;"
+                            data-id="${esc(p.id)}"
+                            data-hora="${esc(p.hora_limite || '')}"
+                            onclick="extenderTiempo(this)"
+                            title="Extender Tiempo">
+                        <i class="fa-solid fa-clock-rotate-forward" style="margin-right:5px;"></i> Extender
+                    </button>`;
+
+            } else if (p.estado === 'Disponible') {
+                acciones = '<small style="color:#aaa">En espera...</small>';
+            }
+
+            let gestion = '';
+            if (p.estado === 'Disponible' || p.estado === 'Mantenimiento') {
+                gestion = `
+                    <a href="/admin/editar_proyector/${esc(p.id)}" style="text-decoration:none;font-size:1.2em;margin-right:12px;color:#1a1a1a;" title="Editar">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </a>
+                    <button onclick="accionPost('/admin/toggle_mantenimiento/${esc(p.id)}')"
+                            style="background:none;border:none;cursor:pointer;font-size:1.2em;margin-right:12px;color:#6c757d;" title="Mantenimiento">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button onclick="prestarDocente(${esc(p.id)})"
+                            style="background:none;border:none;cursor:pointer;font-size:1.2em;margin-right:12px;color:#0056b3;" title="Préstamo Express a Docente">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </button>
+                    <button onclick="accionPost('/admin/eliminar/${esc(p.id)}', '¿Borrar este equipo permanentemente?')"
+                            style="background:none;border:none;cursor:pointer;font-size:1.2em;color:#dc3545;" title="Eliminar">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>`;
+            } else {
+                gestion = '<span style="color:#ccc;font-size:1.2em;" title="Bloqueado durante el uso"><i class="fa-solid fa-ban"></i></span>';
+            }
+
+            html += `<tr>
+                <td><strong>#${esc(p.id)}</strong></td>
+                <td>${badge}</td>
+                <td>${detalles}</td>
+                <td style="min-width:180px;">${uso}</td>
+                <td>${tiempo}</td>
+                <td>${acciones}</td>
+                <td>${gestion}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No hay equipos registrados.</td></tr>';
+
+        if (totalReservadosAnterior !== -1 && totalReservadosActual > totalReservadosAnterior) {
+            lanzarAlerta();
+        }
+        totalReservadosAnterior = totalReservadosActual;
+    }
+
+    function actualizarTabla() {
+        // FIX: Cabecera Accept: application/json para que @requiere_admin devuelva
+        // 401 JSON en lugar de redirect 302 (que el browser seguiría silenciosamente,
+        // rompiendo el polling automático de la tabla).
+        fetch('/api/admin/data', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(r => {
+                if (r.status === 401) {
+                    // Sesión expirada — redirigir al admin al login
+                    window.location.href = '/admin';
+                    return null;
+                }
+                if (!r.ok) throw new Error(`Error HTTP ${r.status}`);
+                return r.json();
+            })
+            .then(data => { if (data) renderTabla(data); })
+            .catch(err => console.error('Error actualizando tabla admin:', err));
+    }
+
+    // ─── PRÉSTAMO A DOCENTE ───────────────────────────────────────────────────
+
+    function prestarDocente(id_proyector) {
+        Swal.fire({
+            title: 'Préstamo a Docente',
+            text: 'Ingresa el nombre del maestro que utilizará el equipo:',
+            input: 'text',
+            inputPlaceholder: 'Ej. Ing. Carlos Martínez',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#cc0000',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Registrar Préstamo',
+            cancelButtonText: 'Cancelar',
+            inputAttributes: { maxlength: 100 },
+            inputValidator: value => { if (!value.trim()) return 'Debes ingresar el nombre del docente'; }
+        }).then(result => {
+            if (result.isConfirmed) {
+                // FIX: Incluir CSRF token en el formulario dinámico
+                const f = document.createElement('form');
+                f.method = 'POST'; f.action = '/admin/prestamo_docente';
+
+                [['csrf_token', csrfToken], ['p_id', id_proyector], ['nombre_docente', result.value]].forEach(([n, v]) => {
+                    const i = document.createElement('input');
+                    i.type = 'hidden'; i.name = n; i.value = v;
+                    f.appendChild(i);
+                });
+                document.body.appendChild(f);
+                f.submit();
+            }
+        });
+    }
+
+    // ─── EXTENDER TIEMPO ──────────────────────────────────────────────────────
+
+    // FIX: Recibe el botón como referencia (data-atributos) en lugar de parámetros inline
+    // que podían permitir inyección JS si hora_limite contenía comillas o caracteres especiales
+    function extenderTiempo(btn) {
+        const id_proyector = btn.dataset.id;
+        const hora_actual  = btn.dataset.hora || '';
+
+        Swal.fire({
+            title: 'Modificar Hora Límite',
+            html: `
+                <p style="text-align:left;color:#666;font-size:0.9em;margin-bottom:15px;">
+                    Selecciona el nuevo horario límite de entrega.
+                    Hora actual: <strong>${esc(hora_actual)}</strong>
+                </p>
+                <input type="time" id="nueva_hora" class="swal2-input" style="width:80%;" required>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0056b3',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa-solid fa-floppy-disk"></i> Guardar Horario',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const nuevaHora = document.getElementById('nueva_hora').value;
+                if (!nuevaHora) {
+                    Swal.showValidationMessage('Debes seleccionar una hora válida');
+                    return false;
+                }
+                if (hora_actual && nuevaHora <= hora_actual) {
+                    Swal.showValidationMessage('Por favor, selecciona una hora posterior a la actual');
+                    return false;
+                }
+                return nuevaHora;
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                // FIX: Incluir CSRF token en el formulario dinámico
+                const f = document.createElement('form');
+                f.method = 'POST'; f.action = '/admin/extender_tiempo';
+
+                [['csrf_token', csrfToken], ['p_id', id_proyector], ['nueva_hora', result.value]].forEach(([n, v]) => {
+                    const i = document.createElement('input');
+                    i.type = 'hidden'; i.name = n; i.value = v;
+                    f.appendChild(i);
+                });
+                document.body.appendChild(f);
+                f.submit();
+            }
+        });
+    }
+
+    // ─── ESTADÍSTICAS ─────────────────────────────────────────────────────────
+
+    let graficoMensual = null;
+    let graficoImpacto = null;
+
+    function verEstadisticas() {
+        Swal.fire({
+            title: 'Estadísticas del Impacto',
+            html: `
+                <p style="text-align:left;color:#666;font-size:0.95em;margin-bottom:20px;">
+                    Visualiza el impacto ambiental y económico generado por la digitalización de préstamos en la FIT.
+                </p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:30px;">
+                    <div style="background:white;padding:15px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.1);border-left:4px solid #17a2b8;">
+                        <div style="color:#666;font-size:.85em;font-weight:bold;text-align:left;"><i class="fa-solid fa-file-circle-minus"></i> HOJAS AHORRADAS</div>
+                        <div id="stats_hojas" style="font-size:1.6em;font-weight:bold;color:#1a1a1a;margin-top:5px;text-align:center;">--</div>
+                    </div>
+                    <div style="background:white;padding:15px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.1);border-left:4px solid #28a745;">
+                        <div style="color:#666;font-size:.85em;font-weight:bold;text-align:left;"><i class="fa-solid fa-sack-dollar"></i> AHORRO ESTIMADO</div>
+                        <div id="stats_pesos" style="font-size:1.6em;font-weight:bold;color:#28a745;margin-top:5px;text-align:center;">--</div>
+                    </div>
+                    <div style="background:white;padding:15px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.1);border-left:4px solid #20c997;">
+                        <div style="color:#666;font-size:.85em;font-weight:bold;text-align:left;"><i class="fa-solid fa-leaf"></i> CO2 MITIGADO</div>
+                        <div id="stats_co2" style="font-size:1.6em;font-weight:bold;color:#1a1a1a;margin-top:5px;text-align:center;">--</div>
+                    </div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:center;width:100%;">
+                    <div style="flex:1;min-width:350px;height:250px;"><canvas id="graficoMensual"></canvas></div>
+                    <div style="flex:1;min-width:250px;height:250px;display:flex;justify-content:center;align-items:center;"><canvas id="graficoImpacto"></canvas></div>
+                </div>
+            `,
+            icon: 'info',
+            showCloseButton: true,
+            showConfirmButton: false,
+            width: '950px',
+            didOpen: () => inicializarEstadisticas(),
+            willClose: () => {
+                if (graficoMensual) { graficoMensual.destroy(); graficoMensual = null; }
+                if (graficoImpacto) { graficoImpacto.destroy(); graficoImpacto = null; }
+            }
+        });
+    }
+
+    function inicializarEstadisticas() {
+        fetch('/api/estadisticas', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('stats_hojas').innerText = data.totales.hojas;
+                document.getElementById('stats_pesos').innerText = `$${data.totales.pesos.toFixed(2)} MXN`;
+                document.getElementById('stats_co2').innerText   = `${data.totales.co2_kg.toFixed(2)} kg`;
+
+                const ctxM = document.getElementById('graficoMensual').getContext('2d');
+                graficoMensual = new Chart(ctxM, {
+                    type: 'line',
+                    data: {
+                        labels: data.mensual.labels,
+                        datasets: [{ label: 'Préstamos Mensuales', data: data.mensual.data, fill: true, backgroundColor: 'rgba(23,162,184,0.2)', borderColor: 'rgb(23,162,184)', tension: 0.3 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Cantidad' } } } }
+                });
+
+                const ctxI = document.getElementById('graficoImpacto').getContext('2d');
+                graficoImpacto = new Chart(ctxI, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Hojas de Papel', 'CO2 (kg) ×10', 'Ahorro ($)'],
+                        datasets: [{ label: 'Desglose del Impacto', data: [data.totales.hojas, data.totales.co2_kg * 10, data.totales.pesos], backgroundColor: ['rgba(23,162,184,0.8)', 'rgba(233,236,239,0.8)', 'rgba(40,167,69,0.8)'], hoverOffset: 4 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, position: 'bottom' },
+                            tooltip: { callbacks: { label: ctx => {
+                                if (ctx.dataIndex === 1) return `CO2 (kg): ${(ctx.raw / 10).toFixed(2)}`;
+                                if (ctx.dataIndex === 2) return `Ahorro ($): ${ctx.raw.toFixed(2)}`;
+                                return `Hojas de Papel: ${ctx.raw}`;
+                            }}}
+                        }
+                    }
+                });
+            })
+            .catch(err => {
+                console.error('Error cargando estadísticas:', err);
+                Swal.showValidationMessage('Error al cargar datos de estadísticas.');
+            });
+    }
+
+    // FIX PERFORMANCE: Datos inyectados desde el backend al cargar la página.
+    // Esto evita que la tabla quede vacía si el fetch falla o tarda en responder.
+    let cachedProyectores = {{ proyectores | tojson | safe }};
+
+    // Pintado instantáneo al cargar (sin esperar el primer fetch)
+    renderTabla(cachedProyectores);
+
+    // Actualizaciones en vivo cada 5 segundos en segundo plano
+    setInterval(actualizarTabla, 5000);
+    setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleTimeString('es-MX'); }, 1000);
+</script>
+</body>
+</html>

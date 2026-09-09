@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon"        type="image/png" href="{{ url_for('static', filename='favicon.png') }}?v=2">
+    <link rel="shortcut icon"                href="{{ url_for('static', filename='favicon.png') }}?v=2">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Préstamos - FIT UAT</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; display: flex; flex-direction: column; min-height: 100vh; }
+
+        .header-institucional { background-color: white; padding: 15px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border-bottom: 3px solid #d9534f; }
+        .header-institucional img { max-width: 100%; height: auto; max-height: 100px; }
+
+        .main-content { flex: 1; display: flex; justify-content: center; align-items: center; padding: 40px 20px; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+
+        .title-icon { color: #d9534f; margin-right: 10px; }
+
+        input[type="text"] { padding: 15px; margin: 20px 0; border: 2px solid #ddd; border-radius: 8px; width: 85%; font-size: 1.1em; text-align: center; }
+
+        button { background-color: #d9534f; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1em; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; }
+        button:hover { background-color: #c9302c; }
+
+        .terminos-container { text-align: left; margin: 15px 0; font-size: 0.9em; color: #555; display: flex; align-items: center; gap: 10px; }
+        .link-terminos { color: #007bff; text-decoration: underline; cursor: pointer; }
+
+        .footer-institucional { background-color: #1a1a1a; color: white; margin-top: auto; }
+        .footer-content { display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; padding: 30px 20px; max-width: 1200px; margin: 0 auto; }
+
+        .footer-logo { flex: 1; min-width: 250px; text-align: center; margin-bottom: 20px; }
+        .footer-logo img { max-width: 200px; height: auto; border-radius: 5px; }
+
+        .footer-links { flex: 1; min-width: 250px; text-align: left; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; }
+        .footer-links a { color: #f8f9fa; text-decoration: none; display: block; margin: 10px 0; font-size: 1.05em; transition: color 0.2s; }
+        .footer-links a i { width: 25px; color: #d9534f; text-align: center; }
+        .footer-links a:hover { color: #d9534f; text-decoration: underline; }
+
+        .footer-social { flex: 1; min-width: 200px; text-align: center; font-size: 2em; letter-spacing: 15px; }
+
+        .footer-bottom { background-color: #d9534f; color: white; text-align: center; padding: 12px; font-size: 0.9em; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: white; margin: 5% auto; padding: 25px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .close-btn:hover { color: #d9534f; }
+
+        .regla-icon   { color: #003366; width: 25px; text-align: center; margin-right: 5px; }
+        .sancion-icon { color: #d9534f; width: 25px; text-align: center; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <header class="header-institucional">
+        <img src="{{ url_for('static', filename='topbar.jpg') }}" alt="UAT FI Tampico">
+    </header>
+
+    <main class="main-content">
+        <div class="card">
+            <h2 style="color:#003366; margin-top:0;">
+                <i class="fa-solid fa-laptop-file title-icon"></i>Sistema de Préstamos
+            </h2>
+            <p style="color:#666; font-size:0.9em;">Exclusivo para alumnos y docentes FI-UAT</p>
+            <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+
+            <!-- FIX: url_for en lugar de /login hardcodeado + CSRF token requerido por CSRFProtect -->
+            <form action="{{ url_for('login') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- FIX: maxlength=20 consistente con validación del backend -->
+                <input type="text" name="matricula" placeholder="Ingresa Tu Matrícula"
+                       required maxlength="20" autocomplete="off">
+
+                <div class="terminos-container">
+                    <input type="checkbox" name="terminos" id="chk_terminos" required style="transform:scale(1.3);">
+                    <label for="chk_terminos">
+                        He leído y acepto los
+                        <span class="link-terminos" onclick="document.getElementById('miModal').style.display='block'">
+                            Términos y Condiciones
+                        </span>
+                    </label>
+                </div>
+
+                <button type="submit">
+                    <i class="fa-solid fa-right-to-bracket"></i> Ingresar al Sistema
+                </button>
+            </form>
+            <br>
+            <!-- FIX: url_for en lugar de /admin hardcodeado -->
+            <a href="{{ url_for('admin_login_page') }}"
+               style="font-size:0.85em; color:#999; text-decoration:none; display:inline-block; margin-top:10px;">
+                <i class="fa-solid fa-user-shield" style="margin-right:5px;"></i>Acceso Administrativo
+            </a>
+        </div>
+    </main>
+
+    <footer class="footer-institucional">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="{{ url_for('static', filename='footer.png') }}" alt="Universidad Autónoma de Tamaulipas">
+            </div>
+
+            <div class="footer-links">
+                <div style="text-align:left;">
+                    <!-- FIX: url_for en todos los enlaces del footer -->
+                    <a href="{{ url_for('acerca_de') }}"><i class="fa-solid fa-circle-info"></i> Acerca del Sistema</a>
+                    <a href="{{ url_for('preguntas') }}"><i class="fa-solid fa-circle-question"></i> Dudas y Preguntas</a>
+                    <a href="{{ url_for('buzon') }}"><i class="fa-solid fa-envelope-open-text"></i> Buzón de Mejoras</a>
+                </div>
+            </div>
+
+            <div class="footer-social" style="display:flex; gap:20px; justify-content:center; align-items:center;">
+                <a href="https://www.facebook.com/FIUAT.MX" target="_blank" rel="noopener noreferrer"
+                   style="color:white; transition:0.3s;"
+                   onmouseover="this.style.color='#d9534f'" onmouseout="this.style.color='white'">
+                    <svg width="35" height="35" fill="currentColor" viewBox="0 0 24 24" aria-label="Facebook FI-UAT">
+                        <path d="M22.675 0h-21.35C.597 0 0 .597 0 1.325v21.351C0 23.403.597 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.73 0 1.323-.597 1.323-1.324V1.325C24 .597 23.403 0 22.675 0z"/>
+                    </svg>
+                </a>
+                <a href="https://x.com/FI_UAT" target="_blank" rel="noopener noreferrer"
+                   style="color:white; transition:0.3s;"
+                   onmouseover="this.style.color='#d9534f'" onmouseout="this.style.color='white'">
+                    <svg width="35" height="35" fill="currentColor" viewBox="0 0 24 24" aria-label="X (Twitter) FI-UAT">
+                        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
+                    </svg>
+                </a>
+                <a href="https://www.instagram.com/fiuat.mx/" target="_blank" rel="noopener noreferrer"
+                   style="color:white; transition:0.3s;"
+                   onmouseover="this.style.color='#d9534f'" onmouseout="this.style.color='white'">
+                    <svg width="35" height="35" fill="currentColor" viewBox="0 0 24 24" aria-label="Instagram FI-UAT">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            Facultad de Ingeniería Tampico, Universidad Autónoma de Tamaulipas Centro Universitario Sur. Tampico, Tamaulipas, México. / Teléfono: 833-241-2000 ext.3331, 3451.
+        </div>
+    </footer>
+
+    <div id="miModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('miModal').style.display='none'">&times;</span>
+            <h2 style="color:#003366; margin-top:0;">
+                <i class="fa-solid fa-file-contract title-icon"></i>Reglamento de Préstamo
+            </h2>
+            <hr>
+            <p><i class="fa-solid fa-building-user regla-icon"></i> <strong>1. Regla Uno:</strong> El uso de los proyectores será de uso exclusivo para alumnos y personal docente de la facultad; se entiende que el proyector será usado dentro de las instalaciones de la institución.</p>
+            <p><i class="fa-solid fa-id-card regla-icon"></i> <strong>2. Regla Dos:</strong> El proyector deberá ser entregado al solicitante, quien traerá una copia de su INE y credencial UAT. Al recibir el proyector, el usuario dejará en depósito su credencial UAT y/o INE, la cual será devuelta una vez que haya entregado el proyector proporcionado.</p>
+            <p><i class="fa-solid fa-user-check regla-icon"></i> <strong>3. Regla Tres:</strong> El usuario deberá recoger el proyector personalmente; no se aceptan credenciales a nombre de otra persona.</p>
+            <p><i class="fa-solid fa-clock regla-icon"></i> <strong>4. Regla Cuatro:</strong> El usuario deberá devolver el proyector máximo 5 minutos después de la hora de uso y, cuando corresponda a la última hora de clases (de 20 a 21 hrs.), se deberá entregar 10 minutos antes.</p>
+            <p><i class="fa-solid fa-plug-circle-check sancion-icon"></i> <strong style="color:#d9534f;">5. Responsiva:</strong> El usuario se responsabiliza del buen uso del EQUIPO (cable HDMI y cable de corriente) y se compromete a devolverlo en las condiciones que se le otorgó.</p>
+            <p><i class="fa-solid fa-screwdriver-wrench sancion-icon"></i> <strong style="color:#d9534f;">6. Sanciones (Daño):</strong> El usuario tendrá la obligación de cubrir en su totalidad los gastos de reparación que resulten del equipo dañado debido al mal uso que se le dé, o en su defecto reponerlo. En caso de pérdida, el usuario deberá reponer el equipo por uno igual o similar, o cubrir el valor de este en efectivo a precio actual. En caso de incumplimiento en la devolución del equipo en el tiempo señalado, se suspenderá el préstamo al usuario.</p>
+            <p><i class="fa-solid fa-triangle-exclamation sancion-icon"></i> <strong style="color:#d9534f;">7. Sanciones (Extravío):</strong> En caso de extravío, el usuario será acreedor a una multa por la pérdida del proyector y, a su vez, será suspendido del sistema de préstamos.</p>
+
+            <button onclick="document.getElementById('miModal').style.display='none'; document.getElementById('chk_terminos').checked = true;"
+                    style="background-color:#28a745; width:100%; margin-top:15px; border:none; padding:15px; border-radius:8px; color:white; font-size:1.1em; font-weight:bold; cursor:pointer;">
+                <i class="fa-solid fa-check" style="margin-right:8px;"></i> Entendido, Acepto
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const alerta = urlParams.get('alerta');
+
+        if (alerta === 'not_found') {
+            Swal.fire({
+                title: 'Acceso Denegado',
+                text: 'Ingrese una matrícula válida o contacte al departamento administrativo.',
+                icon: 'error',
+                confirmButtonColor: '#d9534f',
+                confirmButtonText: 'Entendido'
+            }).then(() => window.history.replaceState(null, '', window.location.pathname));
+
+        } else if (alerta === 'bloqueado') {
+            /**
+             * FIX (DOM XSS): El parámetro 'strikes' venía de la URL y se interpolaba
+             * directamente en html: `...<b>${strikes}</b>...` de SweetAlert2.
+             * SweetAlert renderiza HTML, por lo que una URL maliciosa como:
+             *   /?alerta=bloqueado&strikes=<img src=x onerror=alert(1)>
+             * ejecutaba JavaScript arbitrario en el contexto del usuario.
+             *
+             * Fix: parsear como entero y validar rango antes de usarlo.
+             * Un número nunca puede ser HTML malicioso.
+             */
+            const strikesRaw = parseInt(urlParams.get('strikes'), 10);
+            const strikes    = (isNaN(strikesRaw) || strikesRaw < 0) ? 3 : strikesRaw;
+
+            Swal.fire({
+                title: 'Cuenta Suspendida',
+                html: `Has acumulado <b>${strikes} falta(s) (Strikes)</b> en el sistema.<br><br>Acude a la Secretaría Administrativa para regularizar tu situación.`,
+                icon: 'warning',
+                confirmButtonColor: '#1a1a1a',
+                confirmButtonText: 'Entendido'
+            }).then(() => window.history.replaceState(null, '', window.location.pathname));
+
+        } else if (alerta === 'terminos') {
+            Swal.fire({
+                title: 'Reglamento Requerido',
+                text: 'Debes aceptar los Términos y Condiciones antes de ingresar al sistema.',
+                icon: 'info',
+                confirmButtonColor: '#003366',
+                confirmButtonText: 'Aceptar'
+            }).then(() => window.history.replaceState(null, '', window.location.pathname));
+        }
+    </script>
+
+</body>
+</html>

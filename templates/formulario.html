@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Reserva de Proyector - FIT UAT</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        .card {
+            background: white;
+            padding: 35px 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            border-top: 5px solid #cc0000;
+            box-sizing: border-box;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+
+        h2 { color: #1a1a1a; text-align: center; margin-top: 0; font-size: 1.6em; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        h2 i { color: #cc0000; }
+
+        /* Mensajes flash */
+        .flash { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 0.95em; border-left: 4px solid; }
+        .flash-warning { background: #fff3cd; color: #856404; border-color: #ffc107; }
+        .flash-error   { background: #f8d7da; color: #721c24; border-color: #dc3545; }
+        .flash-success { background: #d4edda; color: #155724; border-color: #28a745; }
+
+        .info-banner {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1em;
+            color: #555;
+            border-left: 4px solid #1a1a1a;
+        }
+
+        label { font-weight: bold; color: #444; margin-top: 15px; display: block; font-size: 0.95em; }
+        label i { color: #cc0000; margin-right: 8px; width: 20px; text-align: center; }
+
+        input, select {
+            width: 100%;
+            padding: 14px;
+            margin-top: 8px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: #fafafa;
+            color: #333;
+            transition: 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: #cc0000;
+            outline: none;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(204,0,0,0.1);
+        }
+        input::placeholder { color: #aaa; }
+
+        .btn-submit {
+            background-color: #cc0000;
+            color: white;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(204,0,0,0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-submit:hover { background-color: #990000; transform: translateY(-1px); }
+
+        .btn-cancel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            color: #777;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 10px;
+            transition: 0.3s;
+        }
+        .btn-cancel:hover { color: #1a1a1a; }
+
+        @media (max-width: 400px) {
+            .card { padding: 25px 20px; }
+            h2 { font-size: 1.3em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2><i class="fa-solid fa-video"></i> Reservar Equipo</h2>
+
+        {# FIX: Renderizar mensajes flash del backend (ej. "proyector ya no disponible") #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="info-banner">
+            Estás solicitando el <strong style="color:#cc0000;">Proyector #{{ proyector_id }}</strong><br>
+            Matrícula: <strong style="color:#1a1a1a;">{{ matricula }}</strong>
+        </div>
+
+        {#
+            FIX 1: url_for en action — garantiza URL encoding correcto de proyector_id y matricula
+                   (antes: action="/pre_apartado/{{ proyector_id }}/{{ matricula }}")
+            FIX 2: CSRF token — requerido por CSRFProtect, sin él el backend responde 400
+        #}
+        <form action="{{ url_for('pre_apartado', proyector_id=proyector_id, matricula=matricula) }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label><i class="fa-solid fa-mobile-screen-button"></i> Teléfono de Contacto:</label>
+            {#
+                FIX 3: maxlength="20" — consistente con la validación del backend ([:20])
+                       pattern=[0-9]{10} guía al usuario, pero el backend es quien valida realmente
+            #}
+            <input type="tel" name="telefono"
+                   placeholder="Ej. 8331234567"
+                   required autocomplete="off"
+                   pattern="[0-9]{10}"
+                   maxlength="20"
+                   title="Ingresa un número de 10 dígitos">
+
+            <label><i class="fa-solid fa-location-dot"></i> Salón / Laboratorio:</label>
+            {#
+                FIX 3: maxlength="50" — consistente con el backend ([:50])
+                FIX 5: oninput fuerza el valor real a mayúsculas.
+                       text-transform:uppercase es solo visual; el browser envía
+                       el valor original en el case que el usuario escriba,
+                       lo que causaba datos en minúsculas guardados en la BD.
+            #}
+            <input type="text" name="salon"
+                   placeholder="Ej. D-04"
+                   required autocomplete="off"
+                   maxlength="50"
+                   oninput="this.value = this.value.toUpperCase()">
+
+            <label><i class="fa-solid fa-chalkboard-user"></i> Docente de la Clase:</label>
+            {# FIX 3: maxlength="100" — consistente con el backend ([:100]) #}
+            {# FIX 5: oninput para mayúsculas reales en el campo maestro  #}
+            <input list="lista-maestros" name="maestro" id="maestro"
+                   placeholder="Escribe para buscar..."
+                   required autocomplete="off"
+                   maxlength="100"
+                   oninput="this.value = this.value.toUpperCase()">
+            <datalist id="lista-maestros">
+                {# Jinja2 auto-escapa {{ docente }} en atributos HTML — no se necesita | escape #}
+                {% for docente in docentes %}
+                    <option value="{{ docente }}">
+                {% endfor %}
+            </datalist>
+
+            <label><i class="fa-solid fa-stopwatch"></i> Tiempo requerido:</label>
+            {# Valores 1 y 2 son consistentes con MAX_HORAS_PRESTAMO=2 del backend #}
+            <select name="horas" required>
+                <option value="1">1 Hora (Una Clase)</option>
+                <option value="2" selected>2 Horas (Clase Doble)</option>
+            </select>
+
+            <button type="submit" class="btn-submit">
+                <i class="fa-solid fa-circle-check"></i> Confirmar Reserva
+            </button>
+        </form>
+
+        {# FIX 2: url_for en lugar de href="/dashboard/{{ matricula }}" hardcodeado #}
+        <a href="{{ url_for('dashboard', matricula=matricula) }}" class="btn-cancel">
+            <i class="fa-solid fa-arrow-left"></i> Cancelar y Volver
+        </a>
+    </div>
+</body>
+</html>

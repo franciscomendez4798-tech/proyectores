@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Acerca de - FI UAT</title>
+
+    <!-- LIBRERÍA DE ICONOS PROFESIONALES (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; text-align: center; margin: 0; }
+        .header { background: white; padding: 20px; border-bottom: 3px solid #d9534f; }
+        .container { max-width: 800px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left; }
+
+        h1 { color: #003366; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 25px; font-size: 1.8em;}
+
+        p { color: #555; line-height: 1.6; font-size: 1.05em; margin-bottom: 20px; }
+        strong { color: #d9534f; display: inline-flex; align-items: center; gap: 8px; }
+
+        .btn-back { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: #003366; text-decoration: none; font-weight: bold; padding: 12px 20px; background: #f0f2f5; border-radius: 8px; transition: 0.3s; }
+        .btn-back:hover { background: #e2e6ea; color: #d9534f; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='topbar.jpg') }}" alt="FI UAT" style="max-height: 80px;">
+    </div>
+
+    <div class="container">
+        <h1><i class="fa-solid fa-circle-info" style="color: #d9534f;"></i> Acerca del Sistema</h1>
+
+        <p><i class="fa-solid fa-landmark" style="color: #003366; margin-right: 8px;"></i> Este sistema ha sido desarrollado en el marco del 70 Aniversario de la Facultad de Ingeniería Tampico para modernizar, agilizar y transparentar el préstamo de equipos audiovisuales de la Secretaría Administrativa.</p>
+
+        <p><strong><i class="fa-solid fa-bullseye"></i> Objetivo:</strong> Brindar a la comunidad estudiantil una herramienta en tiempo real que evite filas innecesarias y garantice la disponibilidad equitativa del inventario.</p>
+
+        <p><strong><i class="fa-solid fa-leaf"></i> Visión:</strong> Contribuir a la reducción del desperdicio de materiales que se genera anualmente en la facultad, así como alcanzar la meta de contribuir a los marcos ecológicos que se buscan mejorar en los últimos años.</p>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+
+        {# FIX: Cambio de href="/" al estándar url_for() #}
+        <a href="{{ url_for('index') }}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Volver al Inicio</a>
+    </div>
+</body>
+</html>

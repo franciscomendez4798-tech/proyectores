@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Buzón de Mejoras - FI UAT</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; text-align: center; margin: 0; }
+        .header { background: white; padding: 20px; border-bottom: 3px solid #d9534f; }
+        .container { max-width: 600px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left;}
+
+        h1 { color: #003366; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 25px;}
+        p { color: #555; line-height: 1.6; margin-bottom: 25px; font-size: 1.05em;}
+
+        label { display: block; margin-top: 15px; font-weight: bold; color: #333; font-size: 0.95em; }
+        label i { color: #003366; margin-right: 8px; width: 20px; text-align: center; }
+
+        input, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 1em; transition: 0.3s;}
+        input:focus, textarea:focus { border-color: #003366; outline: none; }
+
+        button { background-color: #003366; color: white; border: none; padding: 15px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1.1em; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 15px;}
+        button:hover { background-color: #002244; transform: translateY(-1px); }
+
+        .btn-back { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 25px; color: #007bff; text-decoration: none; font-weight: bold; transition: 0.3s;}
+        .btn-back:hover { color: #0056b3; }
+
+        .alerta-exito { background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px;}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='topbar.jpg') }}" alt="FI UAT" style="max-height: 80px;">
+    </div>
+
+    <div class="container">
+        <h1><i class="fa-solid fa-envelope-open-text" style="color: #003366;"></i> Buzón de Mejoras</h1>
+        <p>Si tienes alguna sugerencia para mejorar el sistema o detectaste algún fallo técnico, déjanos tu mensaje. Tu retroalimentación es vital para el área de desarrollo de la facultad.</p>
+
+        {% if request.args.get('exito') or exito %}
+            <div class="alerta-exito"><i class="fa-solid fa-circle-check"></i> ¡Gracias! Tu mensaje ha sido enviado al administrador y guardado en nuestra base de datos.</div>
+        {% endif %}
+
+        {#
+           FIX: Se reemplazó el action de "formsubmit.co" por el url_for de nuestro backend.
+           Ahora el mensaje sí se guardará de forma segura en la base de datos local SQLite,
+           en la tabla `buzon_mejoras`, donde el admin lo podrá consultar.
+        #}
+        <form action="{{ url_for('buzon') }}" method="POST">
+            {# FIX: Agregado el token de seguridad ya que ahora viaja por nuestro servidor #}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label><i class="fa-solid fa-user-pen"></i> Nombre o Matrícula (Opcional):</label>
+            {# FIX: Agregado maxlength consistente con backend ([:100]) #}
+            <input type="text" name="nombre" placeholder="Ej. Juan Pérez" maxlength="100">
+
+            <label><i class="fa-solid fa-at"></i> Correo Electrónico Institucional:</label>
+            {# FIX: Tipo "email" ya estaba, se agregó maxlength="100" #}
+            <input type="email" name="correo" placeholder="Para poder contactarte" maxlength="100">
+
+            <label><i class="fa-solid fa-comment-dots"></i> Mensaje / Sugerencia (Requerido):</label>
+            {# FIX: Agregado maxlength de 1000 consistente con la base de datos #}
+            <textarea name="mensaje" rows="5" required placeholder="Escribe tu idea o reporte detalladamente aquí..." maxlength="1000"></textarea>
+
+            <button type="submit"><i class="fa-solid fa-paper-plane"></i> Enviar al Buzón</button>
+        </form>
+
+        {# FIX: Se cambia enlace rígido href="/" por url_for('index') #}
+        <a href="{{ url_for('index') }}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Volver al Inicio</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Preguntas Frecuentes - FI UAT</title>
+
+    <!-- LIBRERÍA DE ICONOS PROFESIONALES (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; text-align: center; margin: 0; }
+        .header { background: white; padding: 20px; border-bottom: 3px solid #d9534f; }
+        .container { max-width: 800px; margin: 50px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: left;}
+
+        h1 { color: #003366; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 30px;}
+
+        .faq-item { margin-bottom: 25px; }
+        .faq-item h3 { color: #d9534f; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; font-size: 1.2em; }
+        .faq-item h3 i { width: 25px; text-align: center; color: #003366; }
+        .faq-item p { color: #555; line-height: 1.6; margin-top: 0; padding-left: 35px;} /* Alineado con el texto, no debajo del icono */
+
+        .btn-back { display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; color: #003366; text-decoration: none; font-weight: bold; padding: 12px 20px; background: #f0f2f5; border-radius: 8px; transition: 0.3s; }
+        .btn-back:hover { background: #e2e6ea; color: #d9534f; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='topbar.jpg') }}" alt="FI UAT" style="max-height: 80px;">
+    </div>
+
+    <div class="container">
+        <h1><i class="fa-solid fa-circle-question" style="color: #d9534f;"></i> Dudas y Preguntas de Uso</h1>
+
+        <div class="faq-item">
+            <h3><i class="fa-solid fa-id-card-clip"></i> ¿Qué pasa si mi matrícula no entra?</h3>
+            <p>Asegúrate de escribirla sin espacios. Si sigues sin poder entrar, acude a Servicios Escolares, es posible que no estés en el padrón actualizado.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3><i class="fa-solid fa-clone"></i> ¿Puedo apartar dos proyectores?</h3>
+            <p>No. El sistema tiene una regla de préstamo único. Debes devolver el proyector que tienes activo para poder solicitar otro.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> ¿Qué es un "Strike"?</h3>
+            <p>Es una penalización por entregar tarde, dañar el equipo o perder un cable. Si acumulas 3 strikes, tu cuenta será suspendida automáticamente por el sistema.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3><i class="fa-solid fa-stopwatch"></i> ¿Cuánto tiempo puedo pedir un proyector para mis clases?</h3>
+            <p>El tiempo máximo de uso es de 2 horas. Si deseas obtener una extensión de tiempo, podrá ser comentada durante la recepción del equipo.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3><i class="fa-solid fa-screwdriver-wrench"></i> ¿Qué pasa si ocurre un incidente con el uso del equipo?</h3>
+            <p>Dentro de los términos y condiciones que se aceptan, se especifica que el alumno que dañe equipo de la universidad deberá pagar parcial o totalmente el equipo, así como la inhabilitación de su cuenta de préstamos.</p>
+        </div>
+
+        {# FIX: Cambio de href="/" al estándar url_for() #}
+        <a href="{{ url_for('index') }}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Volver al Inicio</a>
+    </div>
+</body>
+</html>

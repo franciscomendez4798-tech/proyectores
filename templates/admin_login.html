@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Acceso Admin - FI UAT</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(rgba(15,15,15,0.8), rgba(15,15,15,0.8)),
+                        url("{{ url_for('static', filename='fondo_fians.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .box {
+            background: rgba(30,30,30,0.95);
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            border-top: 5px solid #cc0000;
+            backdrop-filter: blur(5px);
+            box-sizing: border-box;
+        }
+
+        h2 { margin-top: 0; color: #ffffff; margin-bottom: 25px; font-size: 1.6em; }
+        h2 i { color: #cc0000; margin-right: 8px; }
+
+        .input-group { position: relative; margin: 20px 0; text-align: left; }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+            pointer-events: none;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 45px 12px 40px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background: #2a2a2a;
+            color: white;
+            font-size: 1em;
+            transition: 0.3s;
+        }
+        input:focus { border-color: #cc0000; outline: none; background: #333; }
+        input::placeholder { color: #888; }
+
+        .toggle-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 1.1em;
+            padding: 10px;
+            transition: 0.3s;
+        }
+        .toggle-btn:hover { color: #ffffff; }
+
+        button.btn-submit {
+            padding: 14px 20px;
+            background: #cc0000;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-top: 15px;
+            width: 100%;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        button.btn-submit:hover { background: #990000; transform: translateY(-1px); }
+
+        .btn-back { display: block; margin-top: 25px; color: #aaa; text-decoration: none; font-size: 0.9em; transition: 0.3s; }
+        .btn-back:hover { color: #ffffff; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2><i class="fa-solid fa-user-shield"></i> Acceso Admin</h2>
+
+        <!-- FIX: url_for en action + CSRF token requerido por CSRFProtect -->
+        <form action="{{ url_for('admin_auth') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="input-group">
+                <i class="fa-solid fa-user input-icon"></i>
+                <!-- FIX: maxlength como capa defensiva adicional -->
+                <input type="text" name="usuario" placeholder="Usuario Institucional"
+                       required autocomplete="off" maxlength="50">
+            </div>
+
+            <div class="input-group">
+                <i class="fa-solid fa-lock input-icon"></i>
+                <input type="password" name="password" id="passInput"
+                       placeholder="Contraseña de Acceso"
+                       required autocomplete="current-password" maxlength="100">
+                <button type="button" class="toggle-btn" onclick="togglePass()" title="Mostrar/Ocultar">
+                    <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                </button>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="fa-solid fa-right-to-bracket"></i> Autorizar Entrada
+            </button>
+        </form>
+
+        <!-- FIX: url_for en lugar de href="/" hardcodeado -->
+        <a href="{{ url_for('home') }}" class="btn-back">
+            <i class="fa-solid fa-arrow-left" style="margin-right:5px;"></i> Volver al portal de alumnos
+        </a>
+    </div>
+
+    <script>
+        function togglePass() {
+            const input = document.getElementById('passInput');
+            const icon  = document.getElementById('eyeIcon');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Alumno - FIT UAT</title>
+
+    <!-- FIX: CSRF token accesible para llamadas fetch() en JavaScript -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding-bottom: 50px; }
+
+        .navbar {
+            background-color: #1a1a1a; color: white; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-bottom: 4px solid #cc0000;
+        }
+        .user-info h2 { margin: 0; font-size: 1.2em; display: flex; align-items: center; gap: 8px; }
+        .user-info p  { margin: 0; font-size: 0.9em; opacity: 0.8; font-weight: normal; }
+
+        .matricula-badge {
+            background-color: rgba(255,255,255,0.2); padding: 5px 10px;
+            border-radius: 15px; font-size: 0.9em; margin-right: 10px;
+        }
+        .btn-logout {
+            background-color: #cc0000; color: white; text-decoration: none;
+            padding: 8px 15px; border-radius: 5px; font-size: 0.9em; transition: background 0.3s;
+        }
+        .btn-logout:hover { background-color: #990000; }
+
+        /* FIX: Estilos para mensajes flash del backend */
+        .flash-container { max-width: 1000px; margin: 15px auto 0; padding: 0 20px; }
+        .flash {
+            padding: 12px 18px; border-radius: 6px; margin-bottom: 10px;
+            font-size: 0.95em; border-left: 4px solid;
+        }
+        .flash-warning { background: #fff3cd; color: #856404; border-color: #ffc107; }
+        .flash-error   { background: #f8d7da; color: #721c24; border-color: #dc3545; }
+        .flash-success { background: #d4edda; color: #155724; border-color: #28a745; }
+
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+
+        .card {
+            background: white; border-radius: 10px; padding: 25px; text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s;
+            position: relative; border-top: 5px solid #ccc;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card h3 { margin-top: 0; color: #1a1a1a; font-size: 1.5em; }
+        .card p  { color: #666; font-size: 0.95em; margin: 5px 0; }
+        .card .marca-modelo { font-weight: bold; color: #cc0000; margin-bottom: 15px; display: block; }
+
+        .proyector-img {
+            width: 100%; height: 150px; object-fit: contain; margin-bottom: 15px;
+            border-radius: 8px; background-color: #f8f9fa; padding: 10px;
+            box-sizing: border-box; border: 1px solid #eee;
+        }
+        .proyector-icon-fallback {
+            width: 100%; height: 150px; display: flex; justify-content: center;
+            align-items: center; font-size: 4em; color: #ddd; margin-bottom: 15px;
+            background-color: #f8f9fa; border-radius: 8px; border: 1px solid #eee;
+        }
+
+        .estado-disponible { border-top-color: #cc0000; }
+        .btn-apartar {
+            display: inline-block; background-color: #cc0000; color: white;
+            padding: 10px 20px; text-decoration: none; border-radius: 5px;
+            margin-top: 15px; width: 80%; font-weight: bold;
+        }
+        .btn-apartar:hover { background-color: #990000; }
+
+        .estado-ocupado { border-top-color: #6c757d; opacity: 0.7; }
+        .btn-disabled {
+            background-color: #e2e6ea; color: #6c757d; padding: 10px 20px;
+            border-radius: 5px; margin-top: 15px; display: inline-block;
+            width: 80%; cursor: not-allowed;
+        }
+
+        .estado-mio { border-top-color: #1a1a1a; border: 2px solid #1a1a1a; background-color: #fafafa; }
+        /* FIX: btn-cancelar como <button>, no como <a> — acción POST */
+        .btn-cancelar {
+            background-color: #1a1a1a; color: white; padding: 10px 20px;
+            border-radius: 5px; border: none; cursor: pointer; display: inline-block;
+            margin-top: 10px; font-size: 0.9em; font-family: inherit;
+        }
+        .btn-cancelar:hover { background-color: #333; }
+
+        .estado-mto { border-top-color: #cc0000; background-color: #fff5f5; }
+        .badge-status {
+            display: inline-block; padding: 4px 8px; border-radius: 4px;
+            font-size: 0.8em; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="user-info">
+            <h2><i class="fa-solid fa-video" style="color:#cc0000;"></i> Préstamos FI-UAT</h2>
+            <p>Hola, <strong>{{ nombre }}</strong></p>
+        </div>
+        <div>
+            <span class="matricula-badge"><i class="fa-solid fa-id-card"></i> {{ matricula }}</span>
+            <!-- FIX: url_for en lugar de ruta hardcodeada -->
+            <a href="{{ url_for('logout') }}" class="btn-logout">
+                <i class="fa-solid fa-right-from-bracket"></i> Salir
+            </a>
+        </div>
+    </div>
+
+    <!-- FIX: Mensajes flash del backend (reemplaza los alert() de JS crudo) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <h2 style="color:#444; margin-bottom: 20px;">
+            <i class="fa-solid fa-border-all" style="margin-right: 8px;"></i> Disponibilidad de Equipos
+        </h2>
+        <div id="grid-proyectores" class="grid">
+            <p><i class="fa-solid fa-spinner fa-spin"></i> Cargando proyectores...</p>
+        </div>
+    </div>
+
+    <script>
+        // FIX: | tojson escapa caracteres especiales — previene ruptura de string y XSS
+        const miMatricula = {{ matricula | tojson | safe }};
+
+        // FIX: CSRF token desde meta tag para incluirlo en las peticiones POST
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        /**
+         * FIX (Stored XSS): Escapar SIEMPRE los datos del servidor antes de
+         * insertarlos en innerHTML. textContent neutraliza HTML malicioso.
+         */
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = (str === null || str === undefined) ? '' : String(str);
+            return d.innerHTML;
+        }
+
+        function cancelarReserva(proyectorId) {
+            if (!confirm('¿Seguro que deseas cancelar tu reserva?')) return;
+
+            const form      = document.createElement('form');
+            form.method     = 'POST';
+            form.action     = `/cancelar_alumno/${proyectorId}/${miMatricula}`;
+
+            const csrf      = document.createElement('input');
+            csrf.type       = 'hidden';
+            csrf.name       = 'csrf_token';
+            csrf.value      = csrfToken;
+            form.appendChild(csrf);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // FIX PERFORMANE (Zero Delay Load): Inyectamos los datos iniciales directamente
+        // desde el backend. Esto elimina los 3-4 segundos de pantalla en blanco (spinner).
+        let miEquipo = {{ mi_equipo | tojson | safe }};
+        let cachedData = {{ proyectores | tojson | safe }};
+
+        function renderizarGrid(data) {
+            const grid = document.getElementById('grid-proyectores');
+            let html = '';
+
+            if (data.length === 0) {
+                html = '<p><i class="fa-solid fa-box-open"></i> No hay proyectores registrados en el sistema.</p>';
+            } else {
+                data.forEach(p => {
+                    const imagenHTML = p.foto
+                        ? `<img src="/static/uploads/${encodeURIComponent(p.foto)}" alt="Proyector ${esc(p.id)}" class="proyector-img">`
+                        : `<div class="proyector-icon-fallback"><i class="fa-solid fa-video"></i></div>`;
+
+                    const esMio = miEquipo && miEquipo.id === p.id;
+
+                    if (esMio) {
+                        const horaReserva = miEquipo.hora_reserva
+                            ? esc(miEquipo.hora_reserva.split(' ')[1])
+                            : '';
+                        const horaLimite = esc(miEquipo.hora_limite || '');
+
+                        const mensaje = miEquipo.estado === 'Reservado'
+                            ? '<i class="fa-solid fa-bell"></i> ¡Tienes una reserva!'
+                            : '<i class="fa-solid fa-hand-holding"></i> Equipo en tu posesión';
+
+                        const subtitulo = miEquipo.estado === 'Reservado'
+                            ? `<p style="color:#d9534f;font-weight:bold;"><i class="fa-solid fa-stopwatch"></i> Llegada: ${horaReserva}</p><p>Tienes 15 min para recogerlo</p>`
+                            : `<p style="color:#007bff;font-weight:bold;"><i class="fa-solid fa-clock-rotate-left"></i> Devolver a las: ${horaLimite}</p>`;
+
+                        const botonCancelar = miEquipo.estado === 'Reservado'
+                            ? `<button onclick="cancelarReserva(${esc(p.id)})" class="btn-cancelar"><i class="fa-solid fa-xmark"></i> Cancelar Reserva</button>`
+                            : '';
+
+                        html += `
+                            <div class="card estado-mio">
+                                <span class="badge-status" style="background:#fff3cd;color:#856404;">${mensaje}</span>
+                                <h3>Proyector #${esc(p.id)}</h3>
+                                ${imagenHTML}
+                                <span class="marca-modelo">${esc(p.marca)} ${esc(p.modelo)}</span>
+                                ${subtitulo}
+                                ${botonCancelar}
+                            </div>`;
+
+                    } else if (p.estado === 'Disponible') {
+                        html += `
+                            <div class="card estado-disponible">
+                                <span class="badge-status" style="background:#d4edda;color:#155724;"><i class="fa-solid fa-check"></i> Disponible</span>
+                                <h3>Proyector #${esc(p.id)}</h3>
+                                ${imagenHTML}
+                                <span class="marca-modelo">${esc(p.marca)} ${esc(p.modelo)}</span>
+                                <p><i class="fa-solid fa-location-dot"></i> Ubicación: <strong>Secretaría</strong></p>
+                                <a href="/pre_apartado/${esc(p.id)}/${miMatricula}" class="btn-apartar">
+                                    <i class="fa-solid fa-calendar-check"></i> Apartar Ahora
+                                </a>
+                            </div>`;
+
+                    } else if (p.estado === 'Mantenimiento') {
+                        html += `
+                            <div class="card estado-mto">
+                                <span class="badge-status" style="background:#f8d7da;color:#721c24;"><i class="fa-solid fa-wrench"></i> Mantenimiento</span>
+                                <h3>Proyector #${esc(p.id)}</h3>
+                                ${imagenHTML}
+                                <span class="marca-modelo">${esc(p.marca)}</span>
+                                <p><i class="fa-solid fa-triangle-exclamation"></i> No disponible temporalmente</p>
+                                <div class="btn-disabled"><i class="fa-solid fa-ban"></i> Fuera de Servicio</div>
+                            </div>`;
+
+                    } else {
+                        html += `
+                            <div class="card estado-ocupado">
+                                <span class="badge-status" style="background:#e2e6ea;color:#383d41;"><i class="fa-solid fa-lock"></i> Ocupado</span>
+                                <h3>Proyector #${esc(p.id)}</h3>
+                                ${imagenHTML}
+                                <span class="marca-modelo">${esc(p.marca)} ${esc(p.modelo)}</span>
+                                <p><i class="fa-solid fa-user-lock"></i> En uso</p>
+                                <div class="btn-disabled"><i class="fa-solid fa-ban"></i> Ocupado</div>
+                            </div>`;
+                    }
+                });
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // PINTADO INSTANTÁNEO AL ABRIR LA PÁGINA (Sin Spinner)
+        renderizarGrid(cachedData);
+
+        // ACTUALIZACIÓN EN SEGUNDO PLANO (Live Updates)
+        async function cargarMiEquipo() {
+            try {
+                const res = await fetch('/api/mi_equipo', { credentials: 'same-origin' });
+                if (res.status === 401) { miEquipo = null; return; }
+                miEquipo = await res.json();
+            } catch (e) {
+                miEquipo = null;
+            }
+        }
+
+        async function cargarProyectoresBackground() {
+            await cargarMiEquipo();
+            try {
+                const response = await fetch('/api/data');
+                const data     = await response.json();
+                renderizarGrid(data);
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            }
+        }
+
+        setInterval(cargarProyectoresBackground, 10000);
+    </script>
+</body>
+</html>

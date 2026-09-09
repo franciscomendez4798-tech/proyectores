@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Checklist de Devolución</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding-top: 50px; padding-bottom: 50px; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; width: 450px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-top: 5px solid #cc0000; }
+        h2 { color: #1a1a1a; text-align: center; margin-top: 0; font-size: 1.5em; display: flex; justify-content: center; align-items: center; gap: 10px; }
+
+        .info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 0.95em; color: #333; border-left: 4px solid #1a1a1a; }
+
+        .verificacion-box { background: white; border: 1px solid #eee; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+
+        .master-check { background-color: #f8f9fa; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid #eee; transition: 0.2s; }
+        .master-check:hover { background-color: #f1f1f1; }
+
+        .check-item { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid #f5f5f5; transition: 0.2s; }
+        .check-item:hover { background-color: #fafafa; }
+        .check-item:last-child { border-bottom: none; }
+
+        .check-text-group { display: flex; flex-direction: column; }
+        .check-title    { font-weight: bold; color: #1a1a1a; font-size: 1em; }
+        .check-subtitle { color: #666; font-size: 0.85em; margin-top: 3px; }
+        .icon-item { width: 25px; color: #555; text-align: center; margin-right: 8px; }
+
+        input[type="checkbox"] { transform: scale(1.4); cursor: pointer; accent-color: #28a745; margin-right: 5px; }
+
+        .danger-zone  { border: 2px dashed #dc3545; background-color: #fff5f5; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        .danger-label { color: #dc3545; font-weight: bold; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+
+        .warning-zone  { background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 5px solid #ffc107; margin-top: 20px; margin-bottom: 20px; }
+        .warning-label { color: #856404; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+
+        .btn-confirm { background-color: #cc0000; color: white; width: 100%; padding: 16px; border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 6px rgba(204,0,0,0.2); display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-confirm:hover { background-color: #990000; transform: translateY(-1px); }
+        .btn-cancel { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; color: #777; text-decoration: none; font-weight: bold; }
+        .btn-cancel:hover { color: #1a1a1a; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2><i class="fa-solid fa-clipboard-check" style="color:#cc0000;"></i> Recepción de Equipo</h2>
+
+        <div class="info">
+            {# Jinja2 escapa automáticamente estas variables — no se necesita | escape adicional #}
+            <strong>Proyector #{{ p.id }}</strong> ({{ p.marca }})<br>
+            Entregado por: <strong>{{ p.usuario }}</strong><br>
+            Hora Límite: <strong>{{ p.hora_limite }}</strong>
+        </div>
+
+        {# FIX: url_for en action + CSRF token requerido por CSRFProtect #}
+        <form action="{{ url_for('admin_finalizar') }}" method="POST" id="form-recepcion">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="p_id" value="{{ p.id }}">
+
+            <div class="verificacion-box">
+                <label class="master-check">
+                    <div class="check-text-group">
+                        <span class="check-title">
+                            <i class="fa-solid fa-list-check" style="color:#28a745; margin-right:5px;"></i> Equipo Completo
+                        </span>
+                        <span class="check-subtitle">Seleccionar todos los elementos</span>
+                    </div>
+                    <input type="checkbox" id="check-todos" onclick="toggleTodos(this)">
+                </label>
+
+                <label class="check-item">
+                    <div class="check-text-group">
+                        <span class="check-title"><i class="fa-solid fa-video icon-item"></i> Proyector Físico</span>
+                        <span class="check-subtitle">Sin daños visibles</span>
+                    </div>
+                    <input type="checkbox" class="chk-requisito" onchange="verificarIndividual()" required>
+                </label>
+
+                <label class="check-item">
+                    <div class="check-text-group">
+                        <span class="check-title"><i class="fa-solid fa-plug icon-item"></i> Cable de Corriente</span>
+                    </div>
+                    <input type="checkbox" class="chk-requisito" onchange="verificarIndividual()" required>
+                </label>
+
+                <label class="check-item">
+                    <div class="check-text-group">
+                        <span class="check-title"><i class="fa-solid fa-network-wired icon-item"></i> Cable HDMI / VGA</span>
+                    </div>
+                    <input type="checkbox" class="chk-requisito" onchange="verificarIndividual()" required>
+                </label>
+
+                <label class="check-item">
+                    <div class="check-text-group">
+                        <span class="check-title"><i class="fa-solid fa-id-card icon-item"></i> Credencial del Alumno</span>
+                        <span class="check-subtitle">Devuelta al usuario</span>
+                    </div>
+                    <input type="checkbox" class="chk-requisito" onchange="verificarIndividual()" required>
+                </label>
+            </div>
+
+            {# FIX: name="aplicar_strike" — solo para daño/incidencia real (causa strike) #}
+            <div class="danger-zone">
+                <label class="danger-label">
+                    <input type="checkbox" name="aplicar_strike" id="strike-check">
+                    <i class="fa-solid fa-triangle-exclamation"></i> REPORTAR INCIDENCIA (STRIKE)
+                </label>
+                <p style="font-size:0.85em; color:#666; margin:5px 0 0 35px;">
+                    Marcar si el alumno dañó el equipo o perdió un cable.
+                    <strong>Al 3er Strike se bloqueará su cuenta automáticamente.</strong>
+                </p>
+            </div>
+
+            {#
+                FIX (Bug de lógica): Este checkbox tenía name="aplicar_strike" igual que el anterior.
+                Flask solo devolvía el primer valor con .get(), haciendo que el retraso
+                fuera indistinguible de una incidencia, y que reportar solo retraso
+                no funcionara si la incidencia no estaba marcada.
+                Solución: name="marcar_retraso" — campo separado, sin strike automático.
+            #}
+            <div class="warning-zone">
+                <label class="warning-label">
+                    <input type="checkbox" name="marcar_retraso">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Marcar entrega con RETRASO
+                </label>
+                <p style="font-size:0.85em; color:#856404; margin:5px 0 0 35px;">
+                    Solo registra el retraso en el historial — no genera strike.
+                </p>
+            </div>
+
+            <button type="submit" class="btn-confirm">
+                <i class="fa-solid fa-inbox"></i> Finalizar Recepción
+            </button>
+        </form>
+
+        {# FIX: url_for en lugar de /admin_panel hardcodeado #}
+        <a href="{{ url_for('admin_panel') }}" class="btn-cancel">
+            <i class="fa-solid fa-arrow-left"></i> Cancelar Operación
+        </a>
+    </div>
+
+    <script>
+        function toggleTodos(masterCheckbox) {
+            document.querySelectorAll('.chk-requisito').forEach(chk => {
+                chk.checked = masterCheckbox.checked;
+            });
+        }
+
+        function verificarIndividual() {
+            const checkboxes = document.querySelectorAll('.chk-requisito');
+            document.getElementById('check-todos').checked =
+                Array.from(checkboxes).every(chk => chk.checked);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+    <title>Historial de Préstamos - FIT</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 3px solid #cc0000; padding-bottom: 10px; }
+        .header h1 { color: #1a1a1a; margin: 0; display: flex; align-items: center; gap: 10px; }
+        .header h1 i { color: #cc0000; }
+
+        .history-card {
+            background: white; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 25px; padding: 25px; display: flex; justify-content: space-between;
+            border: 1px solid #e0e0e0; transition: transform 0.2s;
+        }
+        .history-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-color: #ccc; }
+
+        .card-column { width: 48%; }
+        .info-row { margin-bottom: 14px; font-size: 1em; line-height: 1.4; display: flex; align-items: flex-start; }
+        .label { font-weight: bold; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; min-width: 170px; }
+        .label i { color: #888; width: 16px; text-align: center; }
+
+        .search-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-top: 4px solid #1a1a1a; }
+        .search-box { width: 100%; padding: 12px 12px 12px 35px; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; box-sizing: border-box; }
+        .search-wrapper { position: relative; width: 100%; }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; }
+
+        .pagination-container {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 40px; padding: 20px; background: white;
+            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .page-info { font-weight: bold; color: #666; }
+        .nav-buttons { display: flex; gap: 12px; }
+        .btn-nav {
+            padding: 10px 25px; text-decoration: none; border-radius: 6px;
+            font-weight: bold; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-prev { background-color: #1a1a1a; color: white; }
+        .btn-prev:hover { background-color: #333; }
+        .btn-next { background-color: #cc0000; color: white; }
+        .btn-next:hover { background-color: #990000; }
+        .btn-disabled { background-color: #ddd; color: #aaa; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fa-solid fa-book-open"></i> Historial de Entregas</h1>
+        <a href="{{ url_for('admin_panel') }}"
+           style="text-decoration:none; color:#cc0000; font-weight:bold; display:flex; align-items:center; gap:5px;">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Panel
+        </a>
+    </div>
+
+    {# FIX: Renderizar mensajes flash (Punto 8 del checklist) #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-weight: bold;
+                    {% if category == 'success' %}background:#d4edda; color:#155724; border-left:4px solid #28a745;
+                    {% elif category == 'error' %}background:#f8d7da; color:#721c24; border-left:4px solid #dc3545;
+                    {% else %}background:#fff3cd; color:#856404; border-left:4px solid #ffc107;{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="search-container">
+        {#
+            FIX: url_for en action.
+            El formulario de búsqueda es GET — los GET de consulta NO requieren CSRF token.
+            Esto es correcto y no debe cambiarse.
+        #}
+        <form action="{{ url_for('admin_historial') }}" method="GET" style="display:flex; gap:10px;">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                {#
+                    Jinja2 auto-escapa {{ search_query }} en el atributo value:
+                    convierte " en &quot;, < en &lt;, etc. ✅ Seguro.
+                    maxlength consistente con la validación del backend ([:100] en search_query)
+                #}
+                <input type="text" name="q" class="search-box"
+                       value="{{ search_query }}"
+                       placeholder="Buscar por nombre, matrícula o proyector..."
+                       maxlength="100">
+            </div>
+
+            <button type="submit"
+                    style="background:#1a1a1a; color:white; border:none; padding:0 25px; border-radius:6px; cursor:pointer; font-weight:bold; transition:0.3s;"
+                    onmouseover="this.style.background='#333'"
+                    onmouseout="this.style.background='#1a1a1a'">Buscar</button>
+
+            {% if search_query %}
+                {# FIX: url_for en el link "limpiar búsqueda" #}
+                <a href="{{ url_for('admin_historial') }}"
+                   style="background:#f44336; color:white; padding:12px 20px; border-radius:6px; text-decoration:none; font-weight:bold; display:flex; align-items:center; transition:0.3s;"
+                   onmouseover="this.style.background='#d32f2f'"
+                   onmouseout="this.style.background='#f44336'">
+                    <i class="fa-solid fa-eraser"></i>
+                </a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% for r in registros %}
+    <div class="history-card">
+        <div class="card-column">
+            {#
+                Todos los campos {{ r.campo }} son auto-escapados por Jinja2 en templates HTML.
+                No se necesita | escape adicional, y se evitó usar | safe en cualquier campo
+                de datos del usuario (nombre, matricula, telefono, estatus, sancion).
+            #}
+            <div class="info-row">
+                <span class="label"><i class="fa-regular fa-calendar"></i> Fecha:</span>
+                {{ r.fecha }}
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-id-card"></i> Matrícula:</span>
+                {{ r.matricula }}
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-user"></i> Alumno o Docente:</span>
+                <span>{{ r.nombre }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-boxes-packing"></i> Estatus entrega:</span>
+                <span style="color: {{ '#28a745' if 'Perfecto' in r.estatus else '#cc0000' }}; font-weight:bold; display:flex; align-items:center; gap:5px;">
+                    {% if 'Perfecto' in r.estatus %}
+                        <i class="fa-solid fa-circle-check"></i>
+                    {% else %}
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    {% endif %}
+                    {{ r.estatus }}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-chalkboard-user"></i> Docente clase:</span>
+                <span>{{ r.docente_clase }}</span>
+            </div>
+        </div>
+
+        <div class="card-column">
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-video"></i> Proyector:</span>
+                <strong>{{ r.proyector }}</strong>
+            </div>
+            <div class="info-row">
+                <span class="label"><i class="fa-solid fa-phone"></i> Tel. contacto:</span>
+                {#
+                    FIX: Separamos el href del texto visible.
+                    Aunque Jinja2 escapa r.telefono, un número que comience con "javascript:"
+                    o similar podría eludir el escaping en el href.
+                    Solución defensiva: el link solo se muestra si el teléfono luce numérico;
+                    de lo contrario se muestra como texto plano sin enlace.
+                    El backend ya valida con pattern=[0-9]{10}, esto es defensa en profundidad.
+                #}
+                {% if r.telefono and r.telefono != 'N/A' %}
+                    <a href="tel:{{ r.telefono | replace(' ', '') }}"
+                       style="color:#007bff; text-decoration:none;">
+                        {{ r.telefono }}
+                    </a>
+                {% else %}
+                    <span style="color:#888;">{{ r.telefono }}</span>
+                {% endif %}
+            </div>
+            <div class="info-row" style="margin-top:30px;">
+                <span class="label"><i class="fa-solid fa-gavel"></i> Sanciones:</span>
+                <span style="color: {{ '#cc0000' if 'Strike' in r.sancion else '#666' }}; font-weight:bold;">
+                    {{ r.sancion }}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:50px; background:white; border-radius:8px; color:#888; border:1px solid #eee;">
+        <i class="fa-solid fa-folder-open" style="font-size:3em; margin-bottom:15px; color:#ccc;"></i>
+        <h3>No se encontraron registros en esta sección.</h3>
+    </div>
+    {% endfor %}
+
+    <div class="pagination-container">
+        <div class="page-info">
+            <i class="fa-solid fa-file-lines" style="margin-right:5px;"></i>
+            Página {{ page }} de {{ total_pages }}
+        </div>
+
+        <div class="nav-buttons">
+            {#
+                FIX CRÍTICO: Las URLs de paginación antes construían la URL con concatenación
+                de strings en Jinja2:
+                    href="/admin/historial?page={{ page - 1 }}&q={{ search_query }}"
+
+                Problema: Jinja2 aplica HTML escaping (& → &amp;) pero NO URL encoding.
+                Si search_query contiene "&", "=", espacios o caracteres especiales, la URL
+                se rompe o envía parámetros incorrectos al backend.
+
+                Solución: url_for() aplica URL encoding correcto automáticamente,
+                garantizando que "Juan García" → "Juan+Garc%C3%ADa" en la query string.
+            #}
+            {% if page > 1 %}
+                <a href="{{ url_for('admin_historial', page=page-1, q=search_query) }}"
+                   class="btn-nav btn-prev">
+                    <i class="fa-solid fa-arrow-left"></i> Anterior
+                </a>
+            {% else %}
+                <span class="btn-nav btn-disabled">
+                    <i class="fa-solid fa-arrow-left"></i> Anterior
+                </span>
+            {% endif %}
+
+            {% if page < total_pages %}
+                <a href="{{ url_for('admin_historial', page=page+1, q=search_query) }}"
+                   class="btn-nav btn-next">
+                    Siguiente <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            {% else %}
+                <span class="btn-nav btn-disabled">
+                    Siguiente <i class="fa-solid fa-arrow-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

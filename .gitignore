@@ -1,0 +1,10 @@
+.env
+*.db
+*.sqlite3
+*.xlsx
+*.zip
+__pycache__/
+*.py[cod]
+.virtualenvs/
+.cache/
+.local/
