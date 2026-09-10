@@ -64,6 +64,28 @@ app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 # FIX #15: Extensiones permitidas para subida de archivos
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
+# ─── CABECERAS DE SEGURIDAD HTTP ─────────────────────────────────────────────
+@app.after_request
+def aplicar_cabeceras_seguridad(response):
+    """Agrega cabeceras de seguridad a todas las respuestas.
+    CSP permite 'unsafe-eval' solo para los CDNs de SweetAlert2 y Chart.js
+    que lo requieren internamente. Sin esto el navegador los bloquea."""
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' "
+        "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net "
+        "https://fonts.googleapis.com; "
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self';"
+    )
+    return response
+
 DB_NAME = 'uat.db'
 CONFIG = {
     "TIEMPO_ESPERA_MINUTOS": 15,
