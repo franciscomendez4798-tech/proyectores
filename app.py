@@ -362,6 +362,7 @@ def logout():
 
 @app.route('/api/admin/data')
 @requiere_admin
+@limiter.exempt   # Exento: ya protegido por @requiere_admin; el polling cada 5s superaría el límite global
 def api_admin_data():
     """Endpoint exclusivo del panel admin: devuelve TODOS los campos, incluyendo
     usuario, telefono, salon, maestro, horas. Solo accesible con sesión de admin."""
@@ -372,6 +373,7 @@ def api_admin_data():
     return jsonify([dict(r) for r in rows])
 
 @app.route('/api/data')
+@limiter.exempt   # Exento: endpoint público de solo lectura, llamado cada 10s por el dashboard del alumno
 def api_data():
     """FIX #4: Solo expone campos no sensibles. Usuario, teléfono y salón
     ya no se incluyen en la respuesta pública."""
@@ -487,6 +489,7 @@ def pre_apartado(proyector_id, matricula):
     )
 
 @app.route('/api/mi_equipo')
+@limiter.exempt   # Exento: llamado cada 10s por el dashboard del alumno
 def api_mi_equipo():
     """Endpoint autenticado: devuelve el proyector activo del alumno en sesión.
     Separa los datos privados (hora_reserva, hora_limite) de la API pública,
