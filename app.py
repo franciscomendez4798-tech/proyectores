@@ -82,7 +82,7 @@ def aplicar_cabeceras_seguridad(response):
         "https://fonts.googleapis.com; "
         "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
         "img-src 'self' data:; "
-        "connect-src 'self';"
+        "connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;"
     )
     return response
 
