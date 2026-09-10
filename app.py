@@ -624,7 +624,9 @@ def agregar_alumno():
 
     conn    = get_db_connection()
     existe  = conn.execute(
-        "SELECT id FROM alumnos WHERE matricula = ?", (matricula,)
+        # Usamos matricula (campo único) en lugar de id para compatibilidad
+        # con bases de datos creadas con el esquema antiguo sin columna id
+        "SELECT matricula FROM alumnos WHERE matricula = ?", (matricula,)
     ).fetchone()
 
     if existe:
